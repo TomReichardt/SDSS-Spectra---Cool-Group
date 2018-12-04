@@ -1,0 +1,6 @@
+Spectrum Class:
+* Plot spectrum
+* Plot position on sky
+* Subclass into star and galaxy
+* Fit continuum
+* Get wavelength range
