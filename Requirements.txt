@@ -4,3 +4,4 @@ Spectrum Class:
 * Subclass into star and galaxy
 * Fit continuum
 * Get wavelength range
+* Get variance
