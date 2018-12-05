@@ -5,8 +5,13 @@ import matplotlib.pyplot as plt
 class Spectrum():
     def __init__(self, filename):
         self.file = filename
-        self.data = fits.open(self.file)
-        self.spectrum_data = self.data[1].data
+        with fits.open(self.file) as file_data:
+            self.header = file_data[0].header
+            self.spectrum_data = file_data[1].data
+
+        self.ra = self.header['RA']
+        self.dec = self.header['DEC']
+
 
     def show_spectrum(self):
         wavelength = 10**self.spectrum_data['loglam']
@@ -14,6 +19,5 @@ class Spectrum():
         plt.plot(wavelength, flux)
         plt.show()
 
-
 s = Spectrum(r'C:\Users\thoma_000\Documents\SciCoder\SDSS-Spectra---Cool-Group\spectra\spec-10000-57346-0002.fits')
-s.show_spectrum()
+print(s.ra, s.dec)
