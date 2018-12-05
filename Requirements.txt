@@ -5,3 +5,6 @@ Spectrum Class:
 * Fit continuum
 * Get wavelength range
 * Get variance
+
+SDSS Schema Link:
+https://data.sdss.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/spectra/PLATE4/spec.html
