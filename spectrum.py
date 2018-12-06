@@ -10,7 +10,7 @@ import  matplotlib.pyplot   as      plt
 import  matplotlib.gridspec as      gridspec
 import  numpy               as      np
 import  random
-import  webbrowser
+import  seaborn
 
 plt.ioff()
 
@@ -30,28 +30,35 @@ class Spectrum():
             except KeyError:
                 raise IOError('The provided `.fits` file is not from SDSS.')
 
-    def plot_spectrum(self, ax=None):
+    def __repr__(self):
+        return "<Spectrum Object: produced from {}>".format(self.file)
+
+    @property
+    def spectral_lines(self):
+        return sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME'])))
+
+    def plot_spectrum(self, lines=True, ax=None):
         wavelength = 10**self.coadd['loglam']
         flux = self.coadd['flux']
-        if isinstance( ax, type(None) ):
-            ax = plt.gca()
-        ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
-        ax.set_xlabel(r'Wavelength $\AA$')
-        ax.set_ylabel('Flux')
 
-        i = 0
-        line_name = [x[0] for x in self.spzline['LINENAME'].split(" ")]
-        for x, linename in sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME']))):
-            j = i % 11
-            ax.axvline(x=x, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
-            ax.text(x, -30-j*2.5, linename, horizontalalignment='center') 
-            i = i+1        
-        
-        yMax = np.max(ax.get_ylim())
-        yRange = np.ptp(flux)*1.9
-        ax.set_ylim( bottom=yMax-yRange, top=yMax )
+        if ax is None:
+            fig, ax = plt.subplots()
+            ax.set_xlabel(r'Wavelength $\AA$')
+            ax.set_ylabel('Flux')
+
+        ax.plot(wavelength / (1 + np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
+
+        if lines:
+            for i, (line_w, line_n) in enumerate(self.spectral_lines):
+                j = i % 11
+                ax.axvline(x=line_w, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
+                ax.text(line_w, -30-j*2.5, line_n, horizontalalignment='center')
+
+            y_max = np.max(ax.get_ylim())
+            y_range = np.ptp(flux) * 1.9
+            ax.set_ylim(bottom=y_max-y_range, top=y_max)
+
         # The `top` never changes, and the `bottom` is relative to the spectrum, not the plot axis.
-
         return ax
 
     def plot_on_sky(self, ax=None):
@@ -60,9 +67,9 @@ class Spectrum():
         dec = coord.Angle(self.primary["DEC"] * uts.degree)
 
         if ax is None:
-            ax = plt.gca()
-        ax.scatter(ra.radian, dec.radian, s=50, zorder=10)
-        ax.scatter(ra.radian, dec.radian, s=75, c='k', zorder=0)
+            fig, ax = plt.subplots(projection='mollweide')
+            ax.grid(True)
+        ax.scatter(ra.radian, dec.radian)
 
         return ax
 
@@ -79,70 +86,23 @@ class Spectrum():
         lineEWErr = lineEWErr[sore]
 
         if ax is None:
-            ax = plt.gca()
+            fig, ax = plt.subplots()
+            ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
+            ax.set_ylabel( r"${{\rm EW}}\ [{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
+
         ax.errorbar( lineWV, lineEW, yerr=lineEWErr, fmt='o' )
-        ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
-        ax.set_ylabel( r"${{\rm EW}}\ [{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
 
         return ax
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
 SPEC = Spectrum( fileList[1] )
-
-# plt.clf()
-# ax = SPEC.plot_indices()
-# plt.savefig( 'test' )
-# plt.clf()
-# ax = SPEC.plot_spectrum()
-# plt.savefig('spec')
-# pdb.set_trace()
+print(SPEC.spectral_lines)
 
 spectra = [Spectrum(f) for f in fileList[:]]
-plot_types = {'spectrum' : True,
-              'on_sky'   : True,
-              'indices'  : True}
 
+ax = spectra[0].plot_spectrum()
+ax = spectra[1].plot_spectrum(lines=False, ax=ax)
 
-def plot_spec(spectra, plot_types):
-    fig = plt.figure(figsize=(8,8))
-    n_plot_types = sum(plot_types.values())
-    if n_plot_types > 2:
-        nRC = round(np.sqrt(n_plot_types)).astype(int)
-        gs = gridspec.GridSpec( nRC, nRC, hspace=0.3, wspace=0.3 )
-    else:
-        gs = gridspec.GridSpec( n_plot_types, 1, hspace=0.3, wspace=0.3 )
-        nRC = n_plot_types
-    current_sp = 0
-    col = 0
-
-    if plot_types['spectrum']:
-        ax = plt.subplot(gs[current_sp, col])
-        for s in spectra:
-            ax = s.plot_spectrum(ax=ax)
-        current_sp += 1
-    if current_sp == nRC:
-        col+=1
-        current_sp=0
-
-    if plot_types['indices']:
-        ax = plt.subplot(gs[current_sp, col])
-        for s in spectra:
-            ax = s.plot_indices(ax=ax)
-        current_sp += 1
-    if current_sp == nRC:
-        col+=1
-        current_sp=0
-
-    if plot_types['on_sky']:
-        ax = plt.subplot(gs[col,:], projection="mollweide")
-        ax.grid(True)
-        for s in spectra:
-            ax = s.plot_on_sky(ax=ax)
-        current_sp += 1
-
-    return fig
-
-fig = plot_spec(spectra, plot_types)
-fig.savefig(opj( curdir, 'test' ))
-plt.close('all')
+# fig = plot_spec(random.sample(spectra, 7), plot_types)
+# fig.savefig(opj( curdir, 'test' ))
