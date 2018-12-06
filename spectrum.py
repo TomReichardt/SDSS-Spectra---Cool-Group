@@ -32,8 +32,8 @@ class Spectrum():
         if isinstance( ax, type(None) ):
             ax = plt.gca()
         ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
-        ax.xlabel(r'Wavelength $\AA$')
-        ax.ylabel('Flux')
+        ax.set_xlabel(r'Wavelength $\AA$')
+        ax.set_ylabel('Flux')
 
         i = 0
         line_name = [x[0] for x in self.spzline['LINENAME'].split(" ")]
@@ -42,7 +42,12 @@ class Spectrum():
             ax.axvline(x=x, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
             ax.text(x, -30-j*2.5, linename, horizontalalignment='center') 
             i = i+1        
-
+        
+        ylim = ax.get_ylim()
+        yRange = np.ptp(ylim)*2.
+        ax.set_ylim( bottom=np.max(ylim)-yRange )
+        
+        
         return ax
 
     def plot_on_sky(self, ax=None):
@@ -74,7 +79,6 @@ class Spectrum():
         ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
         ax.set_ylabel( r"${{\rm EW}}\ [{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
         
-        
         return ax
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
@@ -84,13 +88,16 @@ SPEC = Spectrum( fileList[1] )
 plt.clf()
 ax = SPEC.plot_indices()
 plt.savefig( 'test' )
+plt.clf()
+ax = SPEC.plot_spectrum()
+plt.savefig('spec')
 pdb.set_trace()
 
-fig = plt.figure(figsize=(8,6))
-gs = gridspec.GridSpec(1,2)
-ax = plt.subplot(gs[0,1], projection="mollweide")
-ax.grid(True)
-ax = s.plot_on_sky(ax=ax)
-ax = plt.subplot(gs[0,0])
-ax = s.plot_spectrum(ax=ax)
+# fig = plt.figure(figsize=(8,6))
+# gs = gridspec.GridSpec(1,2)
+# ax = plt.subplot(gs[0,1], projection="mollweide")
+# ax.grid(True)
+# ax = SPEC.plot_on_sky(ax=ax)
+# ax = plt.subplot(gs[0,0])
+# ax = SPEC.plot_spectrum(ax=ax)
 plt.show()
