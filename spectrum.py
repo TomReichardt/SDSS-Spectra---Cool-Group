@@ -43,7 +43,7 @@ class Spectrum():
 
         if ax is None:
             fig, ax = plt.subplots()
-            ax.set_xlabel(r'Wavelength $\AA$')
+            ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
             ax.set_ylabel('Flux')
 
         ax.plot(wavelength / (1 + np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
@@ -67,9 +67,10 @@ class Spectrum():
         dec = coord.Angle(self.primary["DEC"] * uts.degree)
 
         if ax is None:
-            fig, ax = plt.subplots(projection='mollweide')
+            ax = plt.subplot(111, projection='mollweide')
             ax.grid(True)
-        ax.scatter(ra.radian, dec.radian)
+        ax.scatter(ra.radian, dec.radian, s=50, zorder=10)
+        ax.scatter(ra.radian, dec.radian, s=75, c='k', zorder=0)
 
         return ax
 
@@ -98,6 +99,14 @@ fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
 SPEC = Spectrum( fileList[1] )
 print(SPEC.spectral_lines)
+
+# plt.clf()
+# ax = SPEC.plot_indices()
+# plt.savefig( 'test' )
+# plt.clf()
+ax = SPEC.plot_spectrum()
+plt.savefig('spec')
+pdb.set_trace()
 
 spectra = [Spectrum(f) for f in fileList[:]]
 
