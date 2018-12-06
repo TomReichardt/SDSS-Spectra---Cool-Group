@@ -44,9 +44,10 @@ class Spectrum():
             ax.text(x, -30-j*2.5, linename, horizontalalignment='center') 
             i = i+1        
         
-        ylim = ax.get_ylim()
-        yRange = np.ptp(ylim)*2.
-        ax.set_ylim( bottom=np.max(ylim)-yRange )
+        yMax = np.max(ax.get_ylim())
+        yRange = np.ptp(flux)*1.9
+        ax.set_ylim( bottom=yMax-yRange, top=yMax )
+        # The `top` never changes, and the `bottom` is relative to the spectrum, not the plot axis.
 
         return ax
 
@@ -95,33 +96,43 @@ SPEC = Spectrum( fileList[1] )
 
 spectra = [Spectrum(f) for f in fileList[:]]
 plot_types = {'spectrum' : True,
-              'on_sky'   : True,
+              'on_sky'   : False,
               'indices'  : True}
 
 
 def plot_spec(spectra, plot_types):
     fig = plt.figure(figsize=(8,8))
     n_plot_types = sum(plot_types.values())
-    nRC = round(np.sqrt(n_plot_types)).astype(int)
-    gs = gridspec.GridSpec( nRC, nRC, hspace=0.3, wspace=0.3 )
+    if n_plot_types > 2:
+        nRC = round(np.sqrt(n_plot_types)).astype(int)
+        gs = gridspec.GridSpec( nRC, nRC, hspace=0.3, wspace=0.3 )
+    else:
+        gs = gridspec.GridSpec( n_plot_types, 1, hspace=0.3, wspace=0.3 )
+        nRC = n_plot_types
     current_sp = 0
     col = 0
+    print(nRC)
+    print(current_sp, col)
     if plot_types['spectrum']:
-        ax = plt.subplot(gs[col,current_sp])
+        ax = plt.subplot(gs[current_sp, col])
         for s in spectra:
             ax = s.plot_spectrum(ax=ax)
         current_sp += 1
     if current_sp == nRC:
         col+=1
+        current_sp=0
 
+    print(current_sp, col)
     if plot_types['indices']:
-        ax = plt.subplot(gs[col,current_sp])
+        ax = plt.subplot(gs[current_sp, col])
         for s in spectra:
             ax = s.plot_indices(ax=ax)
         current_sp += 1
     if current_sp == nRC:
         col+=1
+        current_sp=0
 
+    print(current_sp, col)
     if plot_types['on_sky']:
         ax = plt.subplot(gs[col,:], projection="mollweide")
         ax.grid(True)
@@ -132,4 +143,4 @@ def plot_spec(spectra, plot_types):
     return fig
 
 fig = plot_spec(random.sample(spectra, 7), plot_types)
-fig.savefig('test')
+fig.savefig(opj( curdir, 'test' ))
