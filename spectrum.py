@@ -9,7 +9,9 @@ import  astropy.units       as      uts
 import  matplotlib.pyplot   as      plt
 import  matplotlib.gridspec as      gridspec
 import  numpy               as      np
+import  random
 
+plt.ioff()
 
 curdir = os.path.split(os.path.realpath(__file__))[0]
 
@@ -100,28 +102,34 @@ plot_types = {'spectrum' : True,
 def plot_spec(spectra, plot_types):
     fig = plt.figure(figsize=(8,8))
     n_plot_types = sum(plot_types.values())
-    gs = gridspec.GridSpec(n_plot_types, 1)
+    nRC = round(np.sqrt(n_plot_types)).astype(int)
+    gs = gridspec.GridSpec( nRC, nRC, hspace=0.3, wspace=0.3 )
     current_sp = 0
-    axs = []
+    col = 0
     if plot_types['spectrum']:
-        ax = plt.subplot(gs[current_sp, 0])
+        ax = plt.subplot(gs[col,current_sp])
         for s in spectra:
             ax = s.plot_spectrum(ax=ax)
         current_sp += 1
+    if current_sp == nRC:
+        col+=1
+
+    if plot_types['indices']:
+        ax = plt.subplot(gs[col,current_sp])
+        for s in spectra:
+            ax = s.plot_indices(ax=ax)
+        current_sp += 1
+    if current_sp == nRC:
+        col+=1
 
     if plot_types['on_sky']:
-        ax = plt.subplot(gs[current_sp, 0], projection="mollweide")
+        ax = plt.subplot(gs[col,:], projection="mollweide")
         ax.grid(True)
         for s in spectra:
             ax = s.plot_on_sky(ax=ax)
         current_sp += 1
 
-    if plot_types['indices']:
-        ax = plt.subplot(gs[current_sp, 0])
-        for s in spectra:
-            ax = s.plot_indices(ax=ax)
-        current_sp += 1
+    return fig
 
-    plt.show()
-
-plot_spec(spectra, plot_types)
+fig = plot_spec(random.sample(spectra, 7), plot_types)
+fig.savefig('test')
