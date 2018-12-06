@@ -31,8 +31,19 @@ class Spectrum():
         flux = self.coadd['flux']
         if isinstance( ax, type(None) ):
             ax = plt.gca()
-        ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux)
+        ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
+        ax.xlabel(r'Wavelength $\AA$')
+        ax.ylabel('Flux')
 
+        i = 0
+        line_name = [x[0] for x in self.spzline['LINENAME'].split(" ")]
+        for x, linename in sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME']))):
+            j = i % 11
+            ax.axvline(x=x, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
+            ax.text(x, -30-j*2.5, linename, horizontalalignment='center') 
+            i = i+1        
+
+        return ax
 
     def plot_on_sky(self, ax=None):
         ra = coord.Angle(self.primary["RA"] * uts.degree)
