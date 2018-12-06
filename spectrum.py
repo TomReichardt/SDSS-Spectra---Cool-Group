@@ -58,7 +58,8 @@ class Spectrum():
 
         if ax is None:
             ax = plt.gca()
-        ax.scatter(ra.radian, dec.radian)
+        ax.scatter(ra.radian, dec.radian, s=50, zorder=10)
+        ax.scatter(ra.radian, dec.radian, s=75, c='k', zorder=0)
 
         return ax
 
@@ -96,7 +97,7 @@ SPEC = Spectrum( fileList[1] )
 
 spectra = [Spectrum(f) for f in fileList[:]]
 plot_types = {'spectrum' : True,
-              'on_sky'   : False,
+              'on_sky'   : True,
               'indices'  : True}
 
 
@@ -111,8 +112,7 @@ def plot_spec(spectra, plot_types):
         nRC = n_plot_types
     current_sp = 0
     col = 0
-    print(nRC)
-    print(current_sp, col)
+
     if plot_types['spectrum']:
         ax = plt.subplot(gs[current_sp, col])
         for s in spectra:
@@ -122,7 +122,6 @@ def plot_spec(spectra, plot_types):
         col+=1
         current_sp=0
 
-    print(current_sp, col)
     if plot_types['indices']:
         ax = plt.subplot(gs[current_sp, col])
         for s in spectra:
@@ -132,7 +131,6 @@ def plot_spec(spectra, plot_types):
         col+=1
         current_sp=0
 
-    print(current_sp, col)
     if plot_types['on_sky']:
         ax = plt.subplot(gs[col,:], projection="mollweide")
         ax.grid(True)
@@ -142,5 +140,6 @@ def plot_spec(spectra, plot_types):
 
     return fig
 
-fig = plot_spec(random.sample(spectra, 7), plot_types)
+fig = plot_spec(spectra, plot_types)
 fig.savefig(opj( curdir, 'test' ))
+plt.close('all')
