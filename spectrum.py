@@ -17,9 +17,8 @@ class Spectrum():
         with fits.open(self.file) as file_data:
             self.header = file_data[0].header
             self.spectrum_data = file_data[1].data
-        exStr = "self.{key:s} = self.header['{key:s}']"
-        for key in self.header.keys():
-            exec( exStr.format( key=key ) )
+
+        self.__dict__.update(dict(self.header))
 
     def show_spectrum(self):
         wavelength = 10**self.spectrum_data['loglam']
@@ -30,4 +29,4 @@ class Spectrum():
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
 s = Spectrum( fileList[1] )
-print(s.ra, s.dec)
+print(s.RA)
