@@ -15,23 +15,28 @@ class Spectrum():
     def __init__(self, filename):
         self.file = filename
         with fits.open(self.file) as file_data:
-            self.header = file_data[0].header
-            self.spectrum_data = file_data[1].data
-
-        self.__dict__.update(dict(self.header))
+            try:
+                self.primary = file_data['PRIMARY'].data
+                self.coadd   = file_data[  'COADD'].data
+                self.spall   = file_data[  'SPALL'].data
+                self.spzline = file_data['SPZLINE'].data
+            except KeyError:
+                raise IOError('The provided `.fits` file is not from SDSS.')
+        
 
     def plot(self, ax=None):
-        wavelength = 10**self.spectrum_data['loglam']
-        flux = self.spectrum_data['flux']
+        wavelength = 10**self.coadd['loglam']
+        flux = self.coadd['flux']
         if isinstance( ax, type(None) ):
             ax = plt.gca()
-        ax.plot(wavelength/(1+self.Z), flux)
+        ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux)
         
         return ax
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
-s = Spectrum( fileList[1] )
-
-ax = s.plot()
+SPEC = Spectrum( fileList[1] )
+pdb.set_trace()
+plt.clf()
+ax = SPEC.plot()
 plt.savefig('s')
