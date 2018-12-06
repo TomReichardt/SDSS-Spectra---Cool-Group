@@ -20,13 +20,18 @@ class Spectrum():
 
         self.__dict__.update(dict(self.header))
 
-    def show_spectrum(self):
+    def plot(self, ax=None):
         wavelength = 10**self.spectrum_data['loglam']
         flux = self.spectrum_data['flux']
-        plt.plot(wavelength, flux)
-        plt.show()
+        if isinstance( ax, type(None) ):
+            ax = plt.gca()
+        ax.plot(wavelength/(1+self.Z), flux)
+        
+        return ax
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
 s = Spectrum( fileList[1] )
-print(s.RA)
+
+ax = s.plot()
+plt.savefig('s')
