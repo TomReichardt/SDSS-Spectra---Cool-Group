@@ -25,23 +25,22 @@ class Spectrum():
             except KeyError:
                 raise IOError('The provided `.fits` file is not from SDSS.')
 
-
     def plot_spectrum(self, ax=None):
         wavelength = 10**self.coadd['loglam']
         flux = self.coadd['flux']
         if isinstance( ax, type(None) ):
             ax = plt.gca()
         ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
-        ax.xlabel(r'Wavelength $\AA$')
-        ax.ylabel('Flux')
+        ax.set_xlabel(r'Wavelength $\AA$')
+        ax.set_ylabel('Flux')
 
         i = 0
         line_name = [x[0] for x in self.spzline['LINENAME'].split(" ")]
         for x, linename in sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME']))):
             j = i % 11
             ax.axvline(x=x, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
-            ax.text(x, -30-j*2.5, linename, horizontalalignment='center') 
-            i = i+1        
+            ax.text(x, -30-j*2.5, linename, horizontalalignment='center')
+            i = i+1
 
         return ax
 
@@ -61,36 +60,55 @@ class Spectrum():
         lineNames = self.spzline[  'LINENAME']
         lineEW    = self.spzline[    'LINEEW']
         lineEWErr = self.spzline['LINEEW_ERR']
-        
+
         sore = np.argsort( lineWV )
         lineWV    =    lineWV[sore]
         lineNames = lineNames[sore]
         lineEW    =    lineEW[sore]
         lineEWErr = lineEWErr[sore]
-        
+
         if ax is None:
             ax = plt.gca()
         ax.errorbar( lineWV, lineEW, yerr=lineEWErr, fmt='o' )
         ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
         ax.set_ylabel( r"${{\rm EW}}\ [{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
-        
-        
+
+
         return ax
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
-SPEC = Spectrum( fileList[1] )
+spectra = [Spectrum(f) for f in fileList[:]]
+plot_types = {'spectrum' : True,
+              'on_sky'   : True,
+              'indices'  : True}
 
-plt.clf()
-ax = SPEC.plot_indices()
-plt.savefig( 'test' )
-pdb.set_trace()
 
-fig = plt.figure(figsize=(8,6))
-gs = gridspec.GridSpec(1,2)
-ax = plt.subplot(gs[0,1], projection="mollweide")
-ax.grid(True)
-ax = s.plot_on_sky(ax=ax)
-ax = plt.subplot(gs[0,0])
-ax = s.plot_spectrum(ax=ax)
-plt.show()
+def plot_spec(spectra, plot_types):
+    fig = plt.figure(figsize=(8,8))
+    n_plot_types = sum(plot_types.values())
+    gs = gridspec.GridSpec(n_plot_types, 1)
+    current_sp = 0
+    axs = []
+    if plot_types['spectrum']:
+        ax = plt.subplot(gs[current_sp, 0])
+        for s in spectra:
+            ax = s.plot_spectrum(ax=ax)
+        current_sp += 1
+
+    if plot_types['on_sky']:
+        ax = plt.subplot(gs[current_sp, 0], projection="mollweide")
+        ax.grid(True)
+        for s in spectra:
+            ax = s.plot_on_sky(ax=ax)
+        current_sp += 1
+
+    if plot_types['indices']:
+        ax = plt.subplot(gs[current_sp, 0])
+        for s in spectra:
+            ax = s.plot_indices(ax=ax)
+        current_sp += 1
+
+    plt.show()
+
+plot_spec(spectra, plot_types)
