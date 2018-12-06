@@ -32,6 +32,12 @@ class Spectrum():
         ax.plot(wavelength/(1+np.squeeze(self.spall['Z'])), flux)
         
         return ax
+        
+    def plot_indices(self):
+        lineWV    = self.spzline[  'LINEWAVE']
+        lineNames = self.spzline[  'LINENAME']
+        lineEW    = self.spzline[    'LINEEW']
+        lineEWErr = self.spzline['LINEEW_ERR']
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
@@ -40,3 +46,5 @@ pdb.set_trace()
 plt.clf()
 ax = SPEC.plot()
 plt.savefig('s')
+
+pdb.set_trace()
