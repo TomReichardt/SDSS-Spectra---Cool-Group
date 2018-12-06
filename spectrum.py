@@ -10,6 +10,7 @@ import  matplotlib.pyplot   as      plt
 import  matplotlib.gridspec as      gridspec
 import  numpy               as      np
 import  random
+import  webbrowser
 
 plt.ioff()
 
@@ -18,6 +19,8 @@ curdir = os.path.split(os.path.realpath(__file__))[0]
 class Spectrum():
     def __init__(self, filename):
         self.file = filename
+        webbrowser.open_new('https://i.kym-cdn.com/photos/images/newsfeed/001/323/085/7fd.jpg')
+        # I see you.
         with fits.open(self.file) as file_data:
             try:
                 self.primary = file_data['PRIMARY'].header
