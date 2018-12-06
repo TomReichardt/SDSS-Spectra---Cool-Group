@@ -9,7 +9,19 @@ import  astropy.units       as      uts
 import  matplotlib.pyplot   as      plt
 import  matplotlib.gridspec as      gridspec
 import  numpy               as      np
+import  argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-l", "--lines",
+                    default=['Ly_alpha', 'H_alpha'],
+                    required=False,
+                    help="a list of optional lines: 'Ly_alpha', 'N_V', 'C_IV', 'He_II', \
+                    'C_III]', 'Mg_II', '[O_II]', '[O_II]', '[Ne_III]', 'H_zeta', '[Ne_III]', \
+                    'H_epsilon', 'H_delta', 'H_gamma', '[O_III]', 'He_II', 'H_beta', \
+                    '[O_III]', '[O_III]', 'He_II', '[O_I]', '[N_II]', 'He_I', '[O_I]', \
+                    '[S_III]', '[O_I]', '[N_II]', 'H_alpha', '[N_II]', '[S_II]', \
+                    '[S_II]', '[Ar_III]'")
+args = parser.parse_args()
 
 curdir = os.path.split(os.path.realpath(__file__))[0]
 
@@ -25,7 +37,7 @@ class Spectrum():
             except KeyError:
                 raise IOError('The provided `.fits` file is not from SDSS.')
 
-    def plot_spectrum(self, ax=None):
+    def plot_spectrum(self, ax=None, *args):
         wavelength = 10**self.coadd['loglam']
         flux = self.coadd['flux']
         if isinstance( ax, type(None) ):
@@ -35,11 +47,18 @@ class Spectrum():
         ax.set_ylabel('Flux')
 
         i = 0
-        line_name = [x[0] for x in self.spzline['LINENAME'].split(" ")]
-        for x, linename in sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME']))):
+        line_list = [x[0] for x in self.spzline['LINENAME'].split(" ")]
+        if args.lines == 'all':
+            line_name = line_list
+        else:
+            line_name = args.linelist
+        
+        for k in range(len(line_list)):
             j = i % 11
-            ax.axvline(x=x, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
-            ax.text(x, -30-j*2.5, linename, horizontalalignment='center')
+            if line_list[k] in line_name:
+                line_wave = self.spzline['LINEWAVE'][k]
+                ax.axvline(x=line_wave, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
+                ax.text(line_wave, -30-j*2.5, linename, horizontalalignment='center')
             i = i+1
 
         return ax
