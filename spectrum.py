@@ -1,4 +1,4 @@
-import  os, pdb, re
+import  os, pdb
 from    os.path             import  join    as      opj
 from    os.path             import  isfile  as      opif
 from    os.path             import  isdir   as      opid
@@ -11,13 +11,16 @@ import  matplotlib.gridspec as      gridspec
 import  numpy               as      np
 import  random
 import  seaborn
+import  warnings
 
 plt.ioff()
+warnings.filterwarnings('ignore', category=uts.UnitsWarning)
 
 curdir = os.path.split(os.path.realpath(__file__))[0]
 
 class Attributes:
-    pass
+    def __len__(self):
+        return len(self.__dict__)
 
 class Spectrum():
     def __init__(self, filename):
@@ -39,54 +42,48 @@ class Spectrum():
                 raise IOError('The provided `.fits` file is not from SDSS.')
 
         self.unit = uts.Unit( self.headers.primary['BUNIT'].replace('Ang', 'angstrom') )
-        self.class = self.spall["CLASS"]
+        self.obj_class = self.spall["CLASS"]
+        self.ra = self.headers.primary["RA"]
+        self.dec = self.headers.primary["DEC"]
 
     def __repr__(self):
         return "{}({})".format(self.__class__.__name__, self.file)
 
     def __str__(self):
-        return "<Spectrum object of a {}: produced from {}>".format(self.class, self.file)
+        return "<Spectrum object of a {}: produced from {}>".format(self.obj_class, self.file)
 
     @property
     def spectral_lines(self):
         return sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME'])))
 
-    def plot_spectrum(self, lines=['H', 'Lyman', 'He'], ax=None):
-    
+
+    def plot_spectrum(self, lines=True, ax=None):
         wavelength = 10**self.coadd['loglam']
         flux = self.coadd['flux']
-        self.restframe = wavelength / (1 + np.squeeze(self.spall['Z']))
-        wMin, wMax = np.min(self.restframe), np.max(self.restframe)
 
         if ax is None:
             fig, ax = plt.subplots()
             ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
             ax.set_ylabel(r"Flux $[{}]$".format( self.unit.to_string('latex_inline').strip('$') ))
 
-        ax.plot(self.restframe, flux, '-', alpha=0.7)
+        ax.plot(wavelength / (1 + np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
 
-        lineNames = [line[1] for line in self.spectral_lines]
-        xMin, xMax = ax.get_xlim()
-        yMin, yMax = ax.get_ylim()
-        if 'all' in lines:
-            lines = set([LL.split('_')[0].lstrip('[') for LL in lineNames])
-            print(lines)
-        for i, (line) in enumerate(lines):
-            found = [self.spectral_lines[lineNames.index(XX)] for XX in lineNames if "{}_".format(line) in XX and (wMin <= self.spectral_lines[lineNames.index(XX)][0] <= wMax)]
-            for q, (line_w, line_n) in enumerate(found):
-                j = q % 11
-                ax.plot([line_w, line_w], [-30-j*2.5, yMax*1.5], color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
-                ax.text(line_w, -30-j*2.5, line_n, horizontalalignment='left')
+        if lines:
+            for i, (line_w, line_n) in enumerate(self.spectral_lines):
+                j = i % 11
+                ax.axvline(x=line_w, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
+                ax.text(line_w, -30-j*2.5, line_n, horizontalalignment='center')
 
-        y_range = np.ptp(flux) * 1.9
-        ax.set_ylim(bottom=yMax-y_range, top=yMax)
+            y_max = np.max(ax.get_ylim())
+            y_range = np.ptp(flux) * 1.9
+            ax.set_ylim(bottom=y_max-y_range, top=y_max)
 
         return ax
 
     def plot_on_sky(self, ax=None):
-        ra = coord.Angle(self.headers.primary["RA"] * uts.degree)
+        ra = coord.Angle(self.ra * uts.degree)
         ra = ra.wrap_at(180 * uts.degree)
-        dec = coord.Angle(self.headers.primary["DEC"] * uts.degree)
+        dec = coord.Angle(self.dec * uts.degree)
 
         if ax is None:
             ax = plt.subplot(111, projection='mollweide')
@@ -117,29 +114,18 @@ class Spectrum():
 
         return ax
 
-fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
-c = 299792.458
-SPEC = Spectrum( opj(curdir, 'spectra', 'spec-4055-55359-0006.fits') )
-# SPEC = Spectrum( fileList[0] )
-# print(SPEC.spectral_lines)
 
-# plt.clf()
-# ax = SPEC.plot_indices()
-# plt.savefig( 'test' )
-# plt.clf()
-ax = SPEC.plot_spectrum()
-plt.savefig('spec')
-pdb.set_trace()
+if __name__ == "__main__":
+    fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
+    SPEC = Spectrum( fileList[1] )
+    spectra = [Spectrum(f) for f in fileList[:]]
 
-SPEC = Spectrum( fileList[1] )
-spectra = [Spectrum(f) for f in fileList[:]]
+    ax = plt.subplot(projection='mollweide')
+    ax.grid(True)
 
-ax = plt.subplot(projection='mollweide')
-ax.grid(True)
+    for s in spectra:
+        ax = s.plot_on_sky(ax=ax)
+    plt.show()
 
-for s in spectra:
-    ax = s.plot_on_sky(ax=ax)
-plt.show()
-
-# fig = plot_spec(random.sample(spectra, 7), plot_types)
-# fig.savefig(opj( curdir, 'test' ))
+    # fig = plot_spec(random.sample(spectra, 7), plot_types)
+    # fig.savefig(opj( curdir, 'test' ))
