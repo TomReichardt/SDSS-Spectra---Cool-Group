@@ -1,4 +1,4 @@
-import  os, pdb
+import  os, pdb, re
 from    os.path             import  join    as      opj
 from    os.path             import  isfile  as      opif
 from    os.path             import  isdir   as      opid
@@ -47,26 +47,34 @@ class Spectrum():
     def spectral_lines(self):
         return sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME'])))
 
-    def plot_spectrum(self, lines=True, ax=None):
+    def plot_spectrum(self, lines=['H', 'Lyman', 'He'], ax=None):
         wavelength = 10**self.coadd['loglam']
         flux = self.coadd['flux']
+        self.restframe = wavelength / (1 + np.squeeze(self.spall['Z']))
+        wMin, wMax = np.min(self.restframe), np.max(self.restframe)
 
         if ax is None:
             fig, ax = plt.subplots()
             ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
             ax.set_ylabel(r"Flux $[{}]$".format( self.unit.to_string('latex_inline').strip('$') ))
 
-        ax.plot(wavelength / (1 + np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
+        ax.plot(self.restframe, flux, '-', alpha=0.7)
 
-        if lines:
-            for i, (line_w, line_n) in enumerate(self.spectral_lines):
-                j = i % 11
-                ax.axvline(x=line_w, color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
-                ax.text(line_w, -30-j*2.5, line_n, horizontalalignment='center')
+        lineNames = [line[1] for line in self.spectral_lines]
+        xMin, xMax = ax.get_xlim()
+        yMin, yMax = ax.get_ylim()
+        if 'all' in lines:
+            lines = set([LL.split('_')[0].lstrip('[') for LL in lineNames])
+            print(lines)
+        for i, (line) in enumerate(lines):
+            found = [self.spectral_lines[lineNames.index(XX)] for XX in lineNames if "{}_".format(line) in XX and (wMin <= self.spectral_lines[lineNames.index(XX)][0] <= wMax)]
+            for q, (line_w, line_n) in enumerate(found):
+                j = q % 11
+                ax.plot([line_w, line_w], [-30-j*2.5, yMax*1.5], color='k', linestyle='-.', linewidth=1.0, alpha=0.5)
+                ax.text(line_w, -30-j*2.5, line_n, horizontalalignment='left')
 
-            y_max = np.max(ax.get_ylim())
-            y_range = np.ptp(flux) * 1.9
-            ax.set_ylim(bottom=y_max-y_range, top=y_max)
+        y_range = np.ptp(flux) * 1.9
+        ax.set_ylim(bottom=yMax-y_range, top=yMax)
 
         # The `top` never changes, and the `bottom` is relative to the spectrum, not the plot axis.
         return ax
@@ -107,8 +115,9 @@ class Spectrum():
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
 c = 299792.458
-SPEC = Spectrum( fileList[1] )
-print(SPEC.spectral_lines)
+SPEC = Spectrum( opj(curdir, 'spectra', 'spec-4055-55359-0006.fits') )
+# SPEC = Spectrum( fileList[0] )
+# print(SPEC.spectral_lines)
 
 # plt.clf()
 # ax = SPEC.plot_indices()
