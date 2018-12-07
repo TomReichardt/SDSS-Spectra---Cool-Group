@@ -16,19 +16,29 @@ plt.ioff()
 
 curdir = os.path.split(os.path.realpath(__file__))[0]
 
+class Attributes:
+    pass
+
 class Spectrum():
     def __init__(self, filename):
         self.file = filename
-        webbrowser.open_new('https://i.kym-cdn.com/photos/images/newsfeed/001/323/085/7fd.jpg')
-        # I see you.
         with fits.open(self.file) as file_data:
             try:
-                self.primary = file_data['PRIMARY'].header
+                setattr(self, 'headers', Attributes()) # Set `headers` attribute as an Attribute object
+                for exten in file_data: #loop over the extensions
+                    head = exten.header
+                    setattr(self.headers, exten.name.lower(), head)
+                # use as Spectrum.headers.coadd['<key>']
+                
+                # self.primary = file_data['PRIMARY'].header # primary already added above
                 self.coadd   = file_data[  'COADD'].data
                 self.spall   = file_data[  'SPALL'].data
                 self.spzline = file_data['SPZLINE'].data
+                
             except KeyError:
                 raise IOError('The provided `.fits` file is not from SDSS.')
+            
+        self.unit = uts.Unit( self.headers.primary['BUNIT'].replace('Ang', 'angstrom') )
 
     def __repr__(self):
         return "<Spectrum Object: produced from {}>".format(self.file)
@@ -44,7 +54,7 @@ class Spectrum():
         if ax is None:
             fig, ax = plt.subplots()
             ax.set_xlabel( r"Wavelength $[{}]$".format(uts.Unit('angstrom').to_string('latex_inline').strip('$')) )
-            ax.set_ylabel('Flux')
+            ax.set_ylabel(r"Flux $[{}]$".format( self.unit.to_string('latex_inline').strip('$') ))
 
         ax.plot(wavelength / (1 + np.squeeze(self.spall['Z'])), flux, '-', alpha=0.7)
 
@@ -111,7 +121,10 @@ pdb.set_trace()
 spectra = [Spectrum(f) for f in fileList[:]]
 
 ax = spectra[0].plot_spectrum()
-ax = spectra[1].plot_spectrum(lines=False, ax=ax)
+plt.savefig('withLines')
+plt.clf()
+ax = spectra[1].plot_spectrum(lines=False)
+plt.savefig('withoutLines')
 
 # fig = plot_spec(random.sample(spectra, 7), plot_types)
 # fig.savefig(opj( curdir, 'test' ))
