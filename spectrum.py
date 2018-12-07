@@ -29,23 +29,28 @@ class Spectrum():
                     head = exten.header
                     setattr(self.headers, exten.name.lower(), head)
                 # use as Spectrum.headers.coadd['<key>']
-                
+
                 # self.primary = file_data['PRIMARY'].header # primary already added above
                 self.coadd   = file_data[  'COADD'].data
                 self.spall   = file_data[  'SPALL'].data
                 self.spzline = file_data['SPZLINE'].data
-                
+
             except KeyError:
                 raise IOError('The provided `.fits` file is not from SDSS.')
-            
+
         self.unit = uts.Unit( self.headers.primary['BUNIT'].replace('Ang', 'angstrom') )
+        self.class = self.spall["CLASS"]
 
     def __repr__(self):
-        return "<Spectrum Object: produced from {}>".format(self.file)
+        return "{}({})".format(self.__class_.__name__, self.file)
+
+    def __str__(self):
+        return "<Spectrum object of a {}: produced from {}>".format(self.class, self.file)
 
     @property
     def spectral_lines(self):
         return sorted(set(zip(self.spzline['LINEWAVE'], self.spzline['LINENAME'])))
+
 
     def plot_spectrum(self, lines=True, ax=None):
         wavelength = 10**self.coadd['loglam']
@@ -68,19 +73,18 @@ class Spectrum():
             y_range = np.ptp(flux) * 1.9
             ax.set_ylim(bottom=y_max-y_range, top=y_max)
 
-        # The `top` never changes, and the `bottom` is relative to the spectrum, not the plot axis.
         return ax
 
     def plot_on_sky(self, ax=None):
-        ra = coord.Angle(self.primary["RA"] * uts.degree)
+        ra = coord.Angle(self.headers.primary["RA"] * uts.degree)
         ra = ra.wrap_at(180 * uts.degree)
-        dec = coord.Angle(self.primary["DEC"] * uts.degree)
+        dec = coord.Angle(self.headers.primary["DEC"] * uts.degree)
 
         if ax is None:
             ax = plt.subplot(111, projection='mollweide')
             ax.grid(True)
-        ax.scatter(ra.radian, dec.radian, s=50, zorder=10)
-        ax.scatter(ra.radian, dec.radian, s=75, c='k', zorder=0)
+
+        ax.scatter(ra.radian, dec.radian, s=75, edgecolor='k', zorder=10)
 
         return ax
 
@@ -106,25 +110,15 @@ class Spectrum():
         return ax
 
 fileList = glob( opj( curdir, 'spectra', '*.fits' ) )
-c = 299792.458
 SPEC = Spectrum( fileList[1] )
-print(SPEC.spectral_lines)
-
-# plt.clf()
-# ax = SPEC.plot_indices()
-# plt.savefig( 'test' )
-# plt.clf()
-ax = SPEC.plot_spectrum()
-plt.savefig('spec')
-pdb.set_trace()
-
 spectra = [Spectrum(f) for f in fileList[:]]
 
-ax = spectra[0].plot_spectrum()
-plt.savefig('withLines')
-plt.clf()
-ax = spectra[1].plot_spectrum(lines=False)
-plt.savefig('withoutLines')
+ax = plt.subplot(projection='mollweide')
+ax.grid(True)
+
+for s in spectra:
+    ax = s.plot_on_sky(ax=ax)
+plt.show()
 
 # fig = plot_spec(random.sample(spectra, 7), plot_types)
 # fig.savefig(opj( curdir, 'test' ))
